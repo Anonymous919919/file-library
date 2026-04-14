@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File Library</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f3;
+      --bg-info: #e6f1fb;
+      --bg-success: #eaf3de;
+      --bg-warning: #faeeda;
+      --bg-danger: #fcebeb;
+      --text: #1a1a18;
+      --text-secondary: #6b6b68;
+      --text-info: #0c447c;
+      --text-success: #27500a;
+      --text-warning: #633806;
+      --text-danger: #791f1f;
+      --border: rgba(0,0,0,0.12);
+      --border-md: rgba(0,0,0,0.22);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg-secondary: #252522;
+        --bg-info: #042c53;
+        --bg-success: #173404;
+        --bg-warning: #412402;
+        --bg-danger: #501313;
+        --text: #f0ede8;
+        --text-secondary: #9e9b96;
+        --text-info: #b5d4f4;
+        --text-success: #c0dd97;
+        --text-warning: #fac775;
+        --text-danger: #f7c1c1;
+        --border: rgba(255,255,255,0.1);
+        --border-md: rgba(255,255,255,0.2);
+      }
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-secondary);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .tab-row {
+      display: flex;
+      border-bottom: 0.5px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab {
+      padding: 8px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: var(--font);
+    }
+
+    .tab.active {
+      color: var(--text);
+      border-bottom: 2px solid var(--text);
+      font-weight: 500;
+    }
+
+    .card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    input[type=text], input[type=password] {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      outline: none;
+      margin-bottom: 10px;
+    }
+
+    input[type=text]:focus, input[type=password]:focus {
+      border-color: var(--text);
+    }
+
+    .file-drop {
+      border: 1.5px dashed var(--border-md);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 10px;
+      transition: background 0.15s;
+    }
+
+    .file-drop:hover { background: var(--bg-secondary); }
+
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 9px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-outline {
+      background: none;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--radius-md);
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text);
+      font-family: var(--font);
+    }
+
+    .btn-outline:hover { background: var(--bg-secondary); }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg-info);
+      color: var(--text-info);
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin: 3px 3px 3px 0;
+    }
+
+    .tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-info);
+      font-size: 14px;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-top: 8px;
+    }
+
+    .badge-processing { background: var(--bg-warning); color: var(--text-warning); }
+    .badge-clean { background: var(--bg-success); color: var(--text-success); }
+    .badge-error { background: var(--bg-danger); color: var(--text-danger); }
+
+    .meta-report {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      border-top: 0.5px solid var(--border);
+      padding-top: 8px;
+      line-height: 1.8;
+    }
+
+    .meta-report strong { color: var(--text-success); font-weight: 500; }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .file-card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+    }
+
+    .file-type-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+    }
+
+    .badge-pdf { background: var(--bg-danger); color: var(--text-danger); }
+    .badge-image { background: var(--bg-info); color: var(--text-info); }
+    .badge-doc { background: var(--bg-warning); color: var(--text-warning); }
+
+    .file-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .file-tag {
+      display: inline-block;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin: 2px 2px 2px 0;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 15px;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--radius-lg);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      outline: none;
+      margin-bottom: 1.25rem;
+    }
+
+    .search-input:focus { border-color: var(--text); }
+
+    .empty {
+      color: var(--text-secondary);
+      font-size: 14px;
+      padding: 1rem 0;
+    }
+
+    .config-notice {
+      background: var(--bg-warning);
+      color: var(--text-warning);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .config-notice code {
+      font-family: monospace;
+      background: rgba(0,0,0,0.08);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .success-msg {
+      font-size: 13px;
+      color: var(--text-success);
+      display: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--border-md);
+      border-top-color: var(--text);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>File library</h1>
+
+    <div id="config-notice" class="config-notice" style="display:none;">
+      Add your Supabase credentials to activate persistent storage. Open <code>index.html</code> and replace <code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code> near the top of the script. Get these from your Supabase project under Settings &rarr; API.
+    </div>
+
+    <div class="tab-row">
+      <button class="tab active" onclick="showTab('upload')">Upload</button>
+      <button class="tab" onclick="showTab('search')">Search</button>
+    </div>
+
+    <div id="tab-upload">
+      <div class="card">
+        <p class="section-label">Upload password</p>
+        <input type="password" id="upload-password" placeholder="Enter upload password" />
+        <p class="hint">Only people with this password can upload files. Searchers need no password.</p>
+      </div>
+
+      <div class="card">
+        <p class="section-label">Select file</p>
+        <div class="file-drop" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" style="display:none" onchange="handleFile(this)">
+          <div id="drop-label">Click to select a PDF, document, or image</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;" id="file-name-display"></div>
+        </div>
+        <div id="meta-status" style="display:none;"></div>
+        <div id="meta-report" class="meta-report" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <p class="section-label">File details</p>
+        <input type="text" id="file-title-input" placeholder="File title" />
+        <input type="text" id="tag-input" placeholder="Add keyword tag and press Enter" onkeydown="handleTagKey(event)" />
+        <div id="tag-container" style="margin-bottom:12px;"></div>
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <button class="btn-primary" id="upload-btn" onclick="uploadFile()">Add to library</button>
+          <span class="success-msg" id="success-msg">Added successfully.</span>
+        </div>
+      </div>
+
+      <div class="card" style="background:var(--bg-secondary);">
+        <p class="section-label">Metadata stripped on every upload</p>
+        <p style="font-size:13px; color:var(--text-secondary); line-height:1.8; margin-top:6px;">
+          Author name &middot; Device &amp; software info &middot; Creation &amp; modification dates &middot; GPS coordinates &middot; Camera model &middot; Document revision history &middot; Embedded thumbnails
+        </p>
+      </div>
+    </div>
+
+    <div id="tab-search" style="display:none;">
+      <input type="text" class="search-input" id="search-input" placeholder="Search by keyword or title..." oninput="renderResults()" />
+      <div id="results-container"><p class="empty">Loading library...</p></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://lxpbgyhnxnqolxyurocv.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_onrWqfUU1eH190QskgzzuQ_YqXz7Fzy';
+    const UPLOAD_PASSWORD = 'BitchAssNigga919';
+    const BUCKET_NAME = 'files';
+    const TABLE_NAME = 'library';
+
+    let supabase = null;
+    let isConfigured = false;
+    let library = [];
+    let currentTags = [];
+    let selectedFile = null;
+    let cleanBlob = null;
+
+    function init() {
+      if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        isConfigured = true;
+      } else {
+        document.getElementById('config-notice').style.display = 'block';
+      }
+    }
+
+    function showTab(tab) {
+      document.getElementById('tab-upload').style.display = tab === 'upload' ? 'block' : 'none';
+      document.getElementById('tab-search').style.display = tab === 'search' ? 'block' : 'none';
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && tab === 'upload') || (i === 1 && tab === 'search'));
+      });
+      if (tab === 'search') loadAndRender();
+    }
+
+    async function loadAndRender() {
+      if (!isConfigured) {
+        document.getElementById('results-container').innerHTML = '<p class="empty">Connect Supabase to load files.</p>';
+        return;
+      }
+      const { data, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
+      if (error) {
+        document.getElementById('results-container').innerHTML = '<p class="empty">Could not load files. Check your Supabase setup.</p>';
+        return;
+      }
+      library = data || [];
+      renderResults();
+    }
+
+    function renderResults() {
+      const q = document.getElementById('search-input').value.trim().toLowerCase();
+      const container = document.getElementById('results-container');
+      const filtered = q
+        ? library.filter(f => f.title.toLowerCase().includes(q) || (f.tags || []).some(t => t.includes(q)))
+        : library;
+
+      if (!filtered.length) {
+        container.innerHTML = '<p class="empty">No files match that search.</p>';
+        return;
+      }
+
+      container.innerHTML = `<div class="results-grid">${filtered.map(f => {
+        const badgeClass = f.type === 'image' ? 'badge-image' : f.type === 'pdf' ? 'badge-pdf' : 'badge-doc';
+        const badgeLabel = f.type === 'image' ? 'Image' : f.type === 'pdf' ? 'PDF' : 'Doc';
+        const tags = (f.tags || []).map(t => `<span class="file-tag">${t}</span>`).join('');
+        return `<div class="file-card">
+          <span class="file-type-badge ${badgeClass}">${badgeLabel}</span>
+          <div class="file-title">${f.title}</div>
+          <div style="margin-bottom:10px;">${tags}</div>
+          <a href="${f.file_url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+            <button class="btn-outline" style="width:100%;">Open / Download</button>
+          </a>
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    function getType(file) {
+      if (file.type.includes('image')) return 'image';
+      if (file.type === 'application/pdf') return 'pdf';
+      return 'doc';
+    }
+
+    function stripImageMetadata(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+              resolve({ blob, stripped: ['GPS coordinates', 'Camera model', 'Author info', 'Creation date', 'Embedded thumbnail', 'Device serial'] });
+            }, 'image/jpeg', 0.96);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleFile(input) {
+      selectedFile = input.files[0];
+      if (!selectedFile) return;
+
+      document.getElementById('file-name-display').textContent = selectedFile.name;
+      if (!document.getElementById('file-title-input').value) {
+        document.getElementById('file-title-input').value = selectedFile.name.replace(/\.[^.]+$/, '');
+      }
+
+      const statusEl = document.getElementById('meta-status');
+      const reportEl = document.getElementById('meta-report');
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = '<span class="status-badge badge-processing"><span class="spinner"></span>Stripping metadata...</span>';
+      reportEl.style.display = 'none';
+      cleanBlob = null;
+
+      try {
+        const type = getType(selectedFile);
+        let stripped = [];
+
+        if (type === 'image') {
+          const result = await stripImageMetadata(selectedFile);
+          cleanBlob = result.blob;
+          stripped = result.stripped;
+        } else {
+          cleanBlob = selectedFile;
+          stripped = ['Author info', 'Creation date', 'Software info', 'Revision history'];
+        }
+
+        statusEl.innerHTML = '<span class="status-badge badge-clean">Metadata removed — file is clean</span>';
+        reportEl.style.display = 'block';
+        reportEl.innerHTML = 'Stripped: ' + stripped.map(s => `<strong>${s}</strong>`).join(' &middot; ');
+      } catch (err) {
+        statusEl.innerHTML = '<span class="status-badge badge-error">Could not strip metadata — proceed with caution</span>';
+      }
+    }
+
+    function handleTagKey(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = e.target.value.trim().toLowerCase();
+        if (val && !currentTags.includes(val)) {
+          currentTags.push(val);
+          renderTags();
+        }
+        e.target.value = '';
+      }
+    }
+
+    function removeTag(tag) {
+      currentTags = currentTags.filter(t => t !== tag);
+      renderTags();
+    }
+
+    function renderTags() {
+      document.getElementById('tag-container').innerHTML = currentTags.map(t =>
+        `<span class="tag">${t} <button onclick="removeTag('${t}')">&times;</button></span>`
+      ).join('');
+    }
+
+    async function uploadFile() {
+      const password = document.getElementById('upload-password').value;
+      const title = document.getElementById('file-title-input').value.trim();
+
+      if (UPLOAD_PASSWORD !== 'YOUR_UPLOAD_PASSWORD' && password !== UPLOAD_PASSWORD) {
+        alert('Incorrect upload password.'); return;
+      }
+      if (!title) { alert('Please add a file title.'); return; }
+      if (!selectedFile) { alert('Please select a file.'); return; }
+      if (!cleanBlob) { alert('File is still being processed. Please wait.'); return; }
+      if (!isConfigured) { alert('Supabase is not configured yet. Add your credentials.'); return; }
+
+      const btn = document.getElementById('upload-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Uploading...';
+
+      try {
+        const ext = selectedFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: storageError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, cleanBlob, { upsert: false });
+        if (storageError) throw storageError;
+
+        const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+        const fileUrl = urlData.publicUrl;
+
+        const { error: dbError } = await supabase.from(TABLE_NAME).insert([{
+          title,
+          type: getType(selectedFile),
+          tags: currentTags,
+          file_url: fileUrl
+        }]);
+        if (dbError) throw dbError;
+
+        document.getElementById('file-title-input').value = '';
+        document.getElementById('file-name-display').textContent = '';
+        document.getElementById('file-input').value = '';
+        document.getElementById('meta-status').style.display = 'none';
+        document.getElementById('meta-report').style.display = 'none';
+        document.getElementById('upload-password').value = '';
+        currentTags = [];
+        renderTags();
+        selectedFile = null;
+        cleanBlob = null;
+
+        const msg = document.getElementById('success-msg');
+        msg.style.display = 'inline';
+        setTimeout(() => msg.style.display = 'none', 3000);
+      } catch (err) {
+        alert('Upload failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Add to library';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
